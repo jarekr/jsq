@@ -1,0 +1,8 @@
+#!/bin/sh
+
+if [ -x $JSQLIBPATH ]; then
+  echo "JSQLIBPATH not set"
+  exit 2
+fi
+
+java -cp $JSQLIBPATH jarekr.jsq.Jsq $@
