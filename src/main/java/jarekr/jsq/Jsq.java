@@ -11,10 +11,10 @@ import picocli.CommandLine.Parameters;
 
 import java.io.*;
 import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.*;
 import java.util.concurrent.Callable;
 
@@ -25,7 +25,7 @@ import static jarekr.jsq.Lib.*;
 class Jsq implements Callable<Integer> {
 
     @Parameters(index = "0", description = "The file to (de)squish.")
-    private File file;
+    private File thefile;
 
     @Option(names = {"-x", "--extract"}, description = "extract instead of squishing")
     private boolean extract = false;
@@ -36,10 +36,10 @@ class Jsq implements Callable<Integer> {
     @Option(names = {"--header"}, description = "dump header of compressed file")
     private boolean showHeader = false;
 
-    private int squishFile(File f) throws IOException {
+    private int squishFile(File thefile) throws IOException {
 
-        System.out.println("Reading in "+file.toPath());
-        byte[] fileContents = Files.readAllBytes(file.toPath());
+        System.err.println("Reading in "+thefile.toPath());
+        byte[] fileContents = Files.readAllBytes(thefile.toPath());
         Map<Byte, Integer> freqmap = countBytes(fileContents);
 
         // shift off the lowest freq having key/value entries and create HNode
@@ -60,32 +60,32 @@ class Jsq implements Callable<Integer> {
 
         String newFileName = outfile;
         if (newFileName == null) {
-            newFileName = file.getName() + ".jsq";
+            newFileName = thefile.getName() + ".jsq";
         }
 
-        System.out.println("squishing...");
+        System.err.println("squishing...");
         BitVector compressed = compress(fileContents, byChar);
 
         JsqHeader header = new JsqHeader(toByPrefix(byChar), (int)compressed.getBitCount(), 0);
-        System.out.println("squished "+fileContents.length+" bytes down to "+compressed.toIntList().size() * 4 + " bytes");
+        System.err.println("squished "+fileContents.length+" bytes down to "+compressed.toIntList().size() * 4 + " bytes");
         byte[] headerBytes = header.generate();
-        System.out.println("  header "+headerBytes.length+" bytes");
+        System.err.println("  header "+headerBytes.length+" bytes");
         writeOutToFile(newFileName, header.generate(), compressed);
 
         return 0;
     }
 
-    private int printHeader(File f) throws IOException {
-        System.out.println("Reading "+file.toPath());
-        byte[] fileContents = Files.readAllBytes(file.toPath());
+    private int printHeader(File thefile) throws IOException {
+        System.err.println("Reading "+thefile.toPath());
+        byte[] fileContents = Files.readAllBytes(thefile.toPath());
         JsqHeader header = JsqHeader.parseHeader(fileContents);
         if (header == null) {
-            System.err.println("provided file "+file.toPath()+" is not a .jsq file, or header is corrupted");
+            System.err.println("provided file "+thefile.toPath()+" is not a .jsq file, or header is corrupted");
             return 2;
 
         }
 
-        System.out.printf("byte count=%d, bit count=%d, unique chars=%d%n", header.getHeaderByteCount(),
+        System.err.printf("byte count=%d, bit count=%d, unique chars=%d%n", header.getHeaderByteCount(),
                 header.getBitCount(), header.prefixToChar().size());
         for (var entry: header.prefixToChar().entrySet()) {
             String khar = "";
@@ -96,25 +96,25 @@ class Jsq implements Callable<Integer> {
             } else {
                 khar = "???";
             }
-            System.out.printf("[%s] %s %s%n", hexValue, khar, entry.getKey());
+            System.err.printf("[%s] %s %s%n", hexValue, khar, entry.getKey());
         }
 
         return 0;
     }
 
-    private int unSquishFile(File f) throws IOException {
+    private int unSquishFile(File thefile) throws IOException {
 
-        System.out.println("Reading "+file.toPath());
-        byte[] fileContents = Files.readAllBytes(file.toPath());
+        System.err.println("Reading "+thefile.toPath());
+        byte[] fileContents = Files.readAllBytes(thefile.toPath());
         JsqHeader header = JsqHeader.parseHeader(fileContents);
         if (header == null) {
-            System.err.println("provided file "+file.toPath()+" is not a .jsq file, or header is corrupted");
+            System.err.println("provided file "+thefile.toPath()+" is not a .jsq file, or header is corrupted");
             return 2;
 
         }
         ByteBuffer buffer = ByteBuffer.wrap(fileContents, header.getHeaderByteCount(), fileContents.length - header.getHeaderByteCount());
 
-        BitVector compressed = readFromByteArray(buffer.array(), header);
+        BitVector  compressed = readFromByteArray(buffer.array(), header);
 
         List<Byte> results = decompress(compressed, header.prefixToChar());
         byte[] bytes = new byte[results.size()];
@@ -124,40 +124,39 @@ class Jsq implements Callable<Integer> {
             ++i;
         }
         ByteBuffer buff = ByteBuffer.wrap(bytes);
-        CharBuffer output = StandardCharsets.UTF_8.decode(buff);
-
         if (outfile != null) {
-            System.out.println("outputting "+bytes.length+" bytes to "+outfile);
-            try (BufferedWriter outwriter = Files.newBufferedWriter(Path.of(outfile), StandardCharsets.UTF_8)) {
-                outwriter.write(output.array());
+            System.err.println("outputting "+bytes.length+" bytes to "+outfile);
+
+            try (OutputStream foobar = Files.newOutputStream(Path.of(outfile), StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)) {
+                foobar.write(buff.array());
             } catch (IOException exc) {
                 System.err.format("IOException: %s%n", exc);
             }
         } else {
-            System.out.println("outputting "+bytes.length+" bytes");
-            System.out.println(output);
+            System.err.println("outputting "+bytes.length+" bytes");
+            System.out.println(StandardCharsets.UTF_8.decode(buff));
         }
         return 0;
     }
 
     @Override
-    public Integer call() throws Exception { // your business logic goes here...
+    public Integer call() { // your business logic goes here...
 
-        if (!file.exists()) {
-            System.err.println("file not found ");
+        if (!thefile.exists()) {
+            System.err.println("thefile not found ");
             return 2;
         }
         int exit = 0;
         try {
             if (showHeader) {
-                exit = printHeader(file);
+                exit = printHeader(thefile);
             } else if (extract) {
-                exit = unSquishFile(file);
+                exit = unSquishFile(thefile);
             } else {
-                exit = squishFile(file);
+                exit = squishFile(thefile);
             }
         } catch (IOException ioe) {
-            System.out.println(ioe.getMessage());
+            System.err.println(ioe.getMessage());
         }
         return exit;
     }
