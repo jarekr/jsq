@@ -143,7 +143,7 @@ class Jsq implements Callable<Integer> {
     public Integer call() { // your business logic goes here...
 
         if (!thefile.exists()) {
-            System.err.println("thefile not found ");
+            System.err.println("file not found: " + thefile.getName());
             return 2;
         }
         int exit = 0;
