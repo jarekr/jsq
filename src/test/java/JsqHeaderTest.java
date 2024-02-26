@@ -29,8 +29,9 @@ public class JsqHeaderTest {
         assertNotNull(bytes);
         assertEquals(-52, bytes[0]);
         assertEquals(-35, bytes[1]);
-        assertEquals(105, bytes[3]);
-        assertEquals(66, bytes[4]);
+        assertEquals(105, bytes[2]);
+        assertEquals(66, bytes[3]);
+        assertEquals(5, bytes[7]);
     }
 
     @Test

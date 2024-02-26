@@ -1,6 +1,7 @@
 package jarekr.jsq;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class BitVector {
@@ -65,7 +66,8 @@ public class BitVector {
     }
 
     public List<Integer> reversed() {
-        List<Integer> tmp = this.toIntList().reversed();
+        List<Integer> tmp = this.toIntList();
+        Collections.reverse(tmp);
         return tmp.stream().map(Integer::reverse).toList();
     }
 }

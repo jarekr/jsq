@@ -7,7 +7,7 @@ This is a subbmission for https://codingchallenges.fyi/challenges/challenge-huff
 
 ## Building
 
-Requires jdk >= 1.21 /java 21, gradle 7+
+Requires jdk >= 1.17 /java 17, gradle 7+
 
 To build a runnable distribution:
 
@@ -25,3 +25,4 @@ After building, run with
 ```
 ./jsq.sh --help
 ```
+

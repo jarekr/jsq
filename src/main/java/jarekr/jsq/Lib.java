@@ -18,7 +18,7 @@ public class Lib {
 
         Map<Byte, HNode> byChar = new HashMap<>();
         while (!nodes.isEmpty()) {
-            HNode n = nodes.removeFirst();
+            HNode n = nodes.remove(0);
             if (n.khar != null) {
                 byChar.put(n.khar, n);
             }
